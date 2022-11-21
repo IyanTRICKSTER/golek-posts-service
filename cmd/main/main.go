@@ -3,6 +3,9 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"golek_posts_service/cmd/grpc_server"
+	"golek_posts_service/cmd/msg_broker"
+	"golek_posts_service/pkg/contracts"
 	"golek_posts_service/pkg/database"
 	"golek_posts_service/pkg/database/migration"
 	"golek_posts_service/pkg/http/controllers"
@@ -49,11 +52,22 @@ func main() {
 		3,
 	)
 
+	//Establish Message Broker Connection
+	amqpConn := msg_broker.New()
+	mqPublisherService := msg_broker.NewMQPublisher(amqpConn)
+	mqPublisherService.Setup()
+
 	//Initialize Services
-	postService := services.NewPostService(&postRepository, &qrcodeRepository, &awsS3Repository)
+	postService := services.NewPostService(&postRepository, &qrcodeRepository, &awsS3Repository, &mqPublisherService)
 
 	//Initialize Routes
 	controllers.SetupHandler(engine, &postService)
+
+	//Run grpc service in different thread
+	go func(postService *contracts.PostServiceContract) {
+		grpcServer := grpc_server.New(postService)
+		grpcServer.Run()
+	}(&postService)
 
 	//Running App With Desired Port
 	if port := os.Getenv("APP_PORT"); port == "" {

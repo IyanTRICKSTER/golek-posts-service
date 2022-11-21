@@ -20,18 +20,20 @@ import (
 )
 
 type PostService struct {
-	StorageRepository contracts.StorageRepository
-	PostRepository    contracts.PostRepositoryContract
-	QrCodeRepository  contracts.QrCodeRepository
+	StorageRepository   contracts.StorageRepository
+	PostRepository      contracts.PostRepositoryContract
+	QrCodeRepository    contracts.QrCodeRepository
+	MessageQueueService contracts.MessageQueue
 }
 
 func NewPostService(postRepository *contracts.PostRepositoryContract,
-	qrcodeRepository *contracts.QrCodeRepository, storageRepository *contracts.StorageRepository) contracts.PostServiceContract {
+	qrcodeRepository *contracts.QrCodeRepository, storageRepository *contracts.StorageRepository, mqService *contracts.MessageQueue) contracts.PostServiceContract {
 
 	return &PostService{
-		PostRepository:    *postRepository,
-		QrCodeRepository:  *qrcodeRepository,
-		StorageRepository: *storageRepository,
+		PostRepository:      *postRepository,
+		QrCodeRepository:    *qrcodeRepository,
+		StorageRepository:   *storageRepository,
+		MessageQueueService: *mqService,
 	}
 }
 
@@ -163,6 +165,9 @@ func (p PostService) Create(ctx context.Context, request requests.CreatePostRequ
 	if err != nil || opStatus == status.PostCreatedStatusFailed {
 		return models.Post{}, status.PostCreatedStatusFailed, err
 	}
+
+	//Notify Users
+	p.MessageQueueService.Publish("Post baru " + request.Title)
 
 	return createdPost, status.PostCreatedStatusSuccess, nil
 }

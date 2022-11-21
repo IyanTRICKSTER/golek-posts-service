@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
+	"golek_posts_service/cmd/msg_broker"
 	"golek_posts_service/pkg/contracts"
 	"golek_posts_service/pkg/database"
 	"golek_posts_service/pkg/database/migration"
@@ -63,8 +64,13 @@ func init() {
 		3,
 	)
 
+	//Establish Message Broker Connection
+	amqpConn := msg_broker.New()
+	mqPublisherService := msg_broker.NewMQPublisher(amqpConn)
+	mqPublisherService.Setup()
+
 	//Initialize Services
-	postService := services.NewPostService(&postRepository, &qrcodeRepository, &s3Repo)
+	postService := services.NewPostService(&postRepository, &qrcodeRepository, &s3Repo, &mqPublisherService)
 
 	//Initialize Routes
 	controllers.SetupHandler(engine, &postService)

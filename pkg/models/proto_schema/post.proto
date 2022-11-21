@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package model;
+
+option go_package = ".";
+
+message Post {
+  string id = 1;
+  string name = 2;
+}
+
+message Posts {
+  repeated Post list = 1;
+}
+
+message PostIDs {
+  repeated string id = 1;
+}
+
+service PostService {
+  rpc Fetch(PostIDs) returns (Posts);
+}

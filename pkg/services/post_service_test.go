@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/assert"
+	"golek_posts_service/cmd/msg_broker"
 	"golek_posts_service/pkg/contracts/status"
 	"golek_posts_service/pkg/database"
 	"golek_posts_service/pkg/http/requests"
@@ -44,24 +45,29 @@ func TestPostService(t *testing.T) {
 		3,
 	)
 
-	postService := NewPostService(&postRepository, &qrcodeRepository, &awsS3Repository)
+	//Establish Message Broker Connection
+	amqpConn := msg_broker.New()
+	mqPublisherService := msg_broker.NewMQPublisher(amqpConn)
+	mqPublisherService.Setup()
+
+	postService := NewPostService(&postRepository, &qrcodeRepository, &awsS3Repository, &mqPublisherService)
 
 	var createdPostID string
 
 	t.Run("Create", func(t *testing.T) {
 		createdPost, opStatus, err := postService.Create(context.TODO(), requests.CreatePostRequest{
 			UserID: rand.Int63n(999999),
-			Title:  "Dokumen Kerja",
+			Title:  "Samsung A35",
 			//ImageURL:           "https://randomwordgenerator.com/img/picture-generator/57e8dc4a4c57a914f1dc8460962e33791c3ad6e04e50744172287edc964dc6_640.jpg",
 			Place:           "Lantai 2 depan ruang dosen",
 			Description:     "",
-			Characteristics: []requests.PostCharacteristicRequest{{Title: "Map warna cokelat"}, {"Dokumen 2 lembar"}},
+			Characteristics: []requests.PostCharacteristicRequest{{Title: "Casing hitam"}, {"Ada gantungan boneka"}},
 		})
 		if err != nil || opStatus == status.PostCreatedStatusFailed {
 			t.Error(err)
 		}
 
-		assert.Equal(t, createdPost.Title, "Dokumen Kerja")
+		assert.Equal(t, createdPost.Title, "Samsung A35")
 		assert.Equal(t, len(createdPost.Characteristics), 2)
 
 		createdPostID = createdPost.ID.Hex()

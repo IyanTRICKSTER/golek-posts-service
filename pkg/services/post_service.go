@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -166,8 +167,22 @@ func (p PostService) Create(ctx context.Context, request requests.CreatePostRequ
 		return models.Post{}, status.PostCreatedStatusFailed, err
 	}
 
-	//Notify Users
-	p.MessageQueueService.Publish("Post baru " + request.Title)
+	//Notify all User
+	go func() {
+		payload, err := json.Marshal(contracts.MessagePayload{
+			Title:    "Telah ditemukan " + createdPost.Title,
+			Body:     createdPost.Characteristics[0].Title,
+			ImageUrl: createdPost.ImageURL,
+		})
+		if err != nil {
+			log.Printf("Bookmark Service: Create >> %v", err)
+		}
+
+		err = p.MessageQueueService.Publish(payload)
+		if err != nil {
+			log.Printf("Bookmark Service: Create >> Error Broadcast Message: %v", err)
+		}
+	}()
 
 	return createdPost, status.PostCreatedStatusSuccess, nil
 }

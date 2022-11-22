@@ -10,6 +10,7 @@ func New() *amqp.Connection {
 	if err != nil {
 		log.Fatalf("Failed to establish RabbitMQ connection: %v", err.Error())
 	}
+	log.Printf("Connected to RabbitMQ")
 	return conn
 }
 

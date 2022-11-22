@@ -26,8 +26,9 @@ func (s *GRPCPostServer) Fetch(ctx context.Context, IDs *ps.PostIDs) (*ps.Posts,
 			log.Printf("RPC SERVER, Fetching Document %v Error: %v", IDs.Id, err.Error())
 		} else {
 			posts = append(posts, &ps.Post{
-				Id:   post.ID.Hex(),
-				Name: post.Title,
+				Id:       post.ID.Hex(),
+				Name:     post.Title,
+				ImageUrl: post.ImageURL,
 			})
 		}
 

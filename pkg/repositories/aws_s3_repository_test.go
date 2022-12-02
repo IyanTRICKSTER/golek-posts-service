@@ -2,9 +2,6 @@ package repositories
 
 import (
 	"bytes"
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
-	"github.com/stretchr/testify/assert"
 	"golek_posts_service/cmd/msg_broker"
 	"golek_posts_service/pkg/contracts"
 	"golek_posts_service/pkg/database"
@@ -19,6 +16,10 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
+	"github.com/stretchr/testify/assert"
 )
 
 var (
@@ -65,7 +66,12 @@ func init() {
 	)
 
 	//Establish Message Broker Connection
-	amqpConn := msg_broker.New()
+	amqpConn := msg_broker.New(
+		os.Getenv("RABBITMQ_USER"),
+		os.Getenv("RABBITMQ_PASSWORD"),
+		os.Getenv("RABBITMQ_HOST"),
+		os.Getenv("RABBITMQ_PORT"),
+	)
 	mqPublisherService := msg_broker.NewMQPublisher(amqpConn)
 	mqPublisherService.Setup()
 

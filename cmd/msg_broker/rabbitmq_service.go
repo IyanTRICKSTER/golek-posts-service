@@ -1,12 +1,14 @@
 package msg_broker
 
 import (
-	amqp "github.com/rabbitmq/amqp091-go"
+	"fmt"
 	"log"
+
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-func New() *amqp.Connection {
-	conn, err := amqp.Dial("amqp://guest:guest@172.17.0.2:5672/")
+func New(user string, password string, host string, port string) *amqp.Connection {
+	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/", user, password, host, port))
 	if err != nil {
 		log.Fatalf("Failed to establish RabbitMQ connection: %v", err.Error())
 	}

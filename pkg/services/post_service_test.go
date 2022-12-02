@@ -2,17 +2,17 @@ package services
 
 import (
 	"context"
-	"github.com/joho/godotenv"
-	"github.com/stretchr/testify/assert"
 	"golek_posts_service/cmd/msg_broker"
 	"golek_posts_service/pkg/contracts/status"
 	"golek_posts_service/pkg/database"
 	"golek_posts_service/pkg/http/requests"
 	"golek_posts_service/pkg/models"
 	"golek_posts_service/pkg/repositories"
-	"math/rand"
 	"os"
 	"testing"
+
+	"github.com/joho/godotenv"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestPostService(t *testing.T) {
@@ -46,7 +46,12 @@ func TestPostService(t *testing.T) {
 	)
 
 	//Establish Message Broker Connection
-	amqpConn := msg_broker.New()
+	amqpConn := msg_broker.New(
+		os.Getenv("RABBITMQ_USER"),
+		os.Getenv("RABBITMQ_PASSWORD"),
+		os.Getenv("RABBITMQ_HOST"),
+		os.Getenv("RABBITMQ_PORT"),
+	)
 	mqPublisherService := msg_broker.NewMQPublisher(amqpConn)
 	mqPublisherService.Setup()
 
@@ -56,8 +61,8 @@ func TestPostService(t *testing.T) {
 
 	t.Run("Create", func(t *testing.T) {
 		createdPost, opStatus, err := postService.Create(context.TODO(), requests.CreatePostRequest{
-			UserID: rand.Int63n(999999),
-			Title:  "Samsung A35",
+
+			Title: "Samsung A35",
 			//ImageURL:           "https://randomwordgenerator.com/img/picture-generator/57e8dc4a4c57a914f1dc8460962e33791c3ad6e04e50744172287edc964dc6_640.jpg",
 			Place:           "Lantai 2 depan ruang dosen",
 			Description:     "",

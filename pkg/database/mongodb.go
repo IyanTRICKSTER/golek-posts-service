@@ -69,8 +69,8 @@ func (db *Database) GetCollection() *mongo.Collection {
 }
 
 func (db *Database) Dsn() string {
-	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?", db.DbUsername, db.DBPassword, db.DbHost, db.DbPort, db.DbName)
-	//return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin&ssl=false", db.DbUsername, db.DBPassword, db.DbHost, db.DbPort, db.DbName)
+	//return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?", db.DbUsername, db.DBPassword, db.DbHost, db.DbPort, db.DbName)
+	return fmt.Sprintf("mongodb://%s:%s@%s:%s/%s?authSource=admin&ssl=false", db.DbUsername, db.DBPassword, db.DbHost, db.DbPort, db.DbName)
 }
 
 func catchError() {

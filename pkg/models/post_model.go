@@ -1,9 +1,15 @@
 package models
 
 import (
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
+
+type UserInfo struct {
+	Username  string `bson:"username" json:"username"`
+	UserMajor string `bson:"usermajor" json:"usermajor"`
+}
 
 type Post struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id"`
@@ -17,6 +23,7 @@ type Post struct {
 	Place           string             `bson:"place" json:"place"`
 	Description     string             `bson:"description" json:"description,omitempty"`
 	Characteristics []Characteristic   `bson:"characteristics" json:"characteristics"`
+	User            UserInfo           `bson:"user" json:"user"`
 	UpdatedAt       *time.Time         `json:"updated_at,omitempty" bson:"updated_at"`
 	CreatedAt       *time.Time         `json:"created_at,omitempty" bson:"created_at"`
 	DeletedAt       *time.Time         `json:"deleted_at,omitempty" bson:"deleted_at"`

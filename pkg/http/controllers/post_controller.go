@@ -2,15 +2,17 @@ package controllers
 
 import (
 	"context"
-	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/mongo"
 	"golek_posts_service/pkg/contracts"
 	"golek_posts_service/pkg/contracts/status"
 	"golek_posts_service/pkg/http/requests"
 	"golek_posts_service/pkg/http/responses"
 	"golek_posts_service/pkg/models"
+	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type PostHandler struct {
@@ -24,6 +26,11 @@ func (h *PostHandler) Fetch(c *gin.Context) {
 		page = "1"
 	}
 
+	limit, ok := c.GetQuery("limit")
+	if page == "" || !ok {
+		page = "1"
+	}
+
 	qPage, err := strconv.ParseInt(page, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -32,9 +39,17 @@ func (h *PostHandler) Fetch(c *gin.Context) {
 		return
 	}
 
+	qLimit, err := strconv.ParseInt(limit, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Parsing Limit Parameter " + err.Error(),
+		})
+		return
+	}
+
 	paginate := models.Pagination{
 		Page:    qPage,
-		PerPage: 25,
+		PerPage: qLimit,
 	}
 
 	posts, err := h.PostService.Fetch(context.TODO(), paginate)
@@ -86,6 +101,11 @@ func (h *PostHandler) Search(c *gin.Context) {
 		page = "1"
 	}
 
+	limit, ok := c.GetQuery("limit")
+	if page == "" || !ok {
+		page = "1"
+	}
+
 	qPage, err := strconv.ParseInt(page, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -94,9 +114,17 @@ func (h *PostHandler) Search(c *gin.Context) {
 		return
 	}
 
+	qLimit, err := strconv.ParseInt(limit, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Parsing Limit Parameter " + err.Error(),
+		})
+		return
+	}
+
 	paginate := models.Pagination{
 		Page:    qPage,
-		PerPage: 25,
+		PerPage: qLimit,
 	}
 
 	posts, err := h.PostService.Search(context.TODO(), c.Param("keyword"), paginate)
@@ -108,7 +136,7 @@ func (h *PostHandler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, responses.HttpPaginationResponse{
-		PerPage: 25,
+		PerPage: qLimit,
 		Page:    qPage,
 		HttpResponse: responses.HttpResponse{
 			StatusCode: http.StatusOK,
@@ -123,15 +151,19 @@ func (h *PostHandler) Create(c *gin.Context) {
 
 	var createReq requests.CreatePostRequest
 
+	val, _ := c.Get("authenticatedRequest")
+	authContext := context.WithValue(context.Background(), "authenticatedRequest", val)
+
 	err := c.ShouldBind(&createReq)
 	if err != nil {
+		log.Printf("Request Binding Error: %v", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Binding error " + err.Error(),
 		})
 		return
 	}
 
-	createdPost, opStatus, err := h.PostService.Create(context.TODO(), createReq)
+	createdPost, opStatus, err := h.PostService.Create(authContext, createReq)
 	if err != nil || opStatus == status.PostCreatedStatusFailed {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "PostService Create " + err.Error(),

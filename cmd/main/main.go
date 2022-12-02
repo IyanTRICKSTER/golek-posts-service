@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"golek_posts_service/cmd/grpc_server"
 	"golek_posts_service/cmd/msg_broker"
 	"golek_posts_service/pkg/contracts"
@@ -12,6 +10,9 @@ import (
 	"golek_posts_service/pkg/repositories"
 	"golek_posts_service/pkg/services"
 	"os"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -29,7 +30,7 @@ func main() {
 		DbName:       os.Getenv("DB_NAME"),
 		DbCollection: os.Getenv("DB_COLLECTION"),
 		DbHost:       os.Getenv("DB_HOST"),
-		DbPort:       os.Getenv("DB_PORT"),
+		DbPort:       os.Getenv("DB_PORT_IN"),
 		DbUsername:   os.Getenv("DB_USERNAME"),
 		DBPassword:   os.Getenv("DB_PASSWORD"),
 	}
@@ -53,7 +54,12 @@ func main() {
 	)
 
 	//Establish Message Broker Connection
-	amqpConn := msg_broker.New()
+	amqpConn := msg_broker.New(
+		os.Getenv("RABBITMQ_USER"),
+		os.Getenv("RABBITMQ_PASSWORD"),
+		os.Getenv("RABBITMQ_HOST"),
+		os.Getenv("RABBITMQ_PORT"),
+	)
 	mqPublisherService := msg_broker.NewMQPublisher(amqpConn)
 	mqPublisherService.Setup()
 

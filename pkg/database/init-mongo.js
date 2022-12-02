@@ -4,5 +4,5 @@ db.createUser({
     roles: [
         { role: "readWrite", db: "golek_posts" }
     ],
-    mechanisms: ["<SCRAM-SHA-1|SCRAM-SHA-256>"],
+    mechanisms: ["SCRAM-SHA-1"],
 })

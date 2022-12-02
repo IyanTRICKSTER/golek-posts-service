@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"golek_posts_service/pkg/contracts"
 	"golek_posts_service/pkg/contracts/status"
 	"golek_posts_service/pkg/http/middleware"
@@ -18,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type PostService struct {
@@ -130,6 +131,21 @@ func (p PostService) FindById(ctx context.Context, postID string) (models.Post, 
 
 func (p PostService) Create(ctx context.Context, request requests.CreatePostRequest) (models.Post, status.PostOperationStatus, error) {
 
+	authenticatedReq := ctx.Value("authenticatedRequest").(*middleware.AuthenticatedRequest)
+
+	//Checking authorization
+	opStatus, err := ProtectResource(
+		contracts.Resource{
+			Alias: "c",
+			Name:  "Create",
+		},
+		authenticatedReq,
+		models.Post{UserID: 10},
+		func(isOwner bool) (opStatus status.PostOperationStatus, err error) {
+			return status.OperationAllowed, nil
+		},
+	)
+
 	postCharacteristics := make([]models.Characteristic, 0)
 
 	for _, d := range request.Characteristics {
@@ -141,13 +157,18 @@ func (p PostService) Create(ctx context.Context, request requests.CreatePostRequ
 	//Upload an image to Storage
 	s3Response, err := p.StorageRepository.UploadFile(request.Image, "")
 	if err != nil {
-		return models.Post{}, 0, err
+		return models.Post{}, status.PostCreatedStatusFailed, err
+	}
+
+	userID, err := strconv.Atoi(authenticatedReq.UserID)
+	if err != nil {
+		return models.Post{}, status.PostCreatedStatusFailed, err
 	}
 
 	timeNow := time.Now()
 	newPost := models.Post{
 		ID:              primitive.NewObjectID(),
-		UserID:          request.UserID,
+		UserID:          int64(userID),
 		ReturnedTo:      0,
 		IsReturned:      false,
 		Title:           request.Title,
@@ -160,6 +181,10 @@ func (p PostService) Create(ctx context.Context, request requests.CreatePostRequ
 		UpdatedAt:       &timeNow,
 		CreatedAt:       &timeNow,
 		DeletedAt:       nil,
+		User: models.UserInfo{
+			Username:  authenticatedReq.Username,
+			UserMajor: authenticatedReq.UserMajor,
+		},
 	}
 
 	createdPost, opStatus, err := p.PostRepository.Create(ctx, newPost)
@@ -305,12 +330,16 @@ func ProtectResource(resource contracts.Resource, authenticated *middleware.Auth
 	log.Println("Checking User Permissions")
 
 	//Check User Authorization
-	if !strings.Contains(resource.Alias, authenticated.Permissions) {
+	if !strings.Contains(authenticated.Permissions, resource.Alias) {
 		return status.OperationUnauthorized, errors.New("User x doesn't have any permission to access " + resource.Name + " resource")
 	}
 
+	log.Printf("User id %v is authorized", authenticated.UserID)
+
 	//Check Model's owner
-	isOwner := authenticated.UserID == strconv.Itoa(int(model.UserID))
+	isOwner := (authenticated.UserID == strconv.FormatInt(model.UserID, 10))
+
+	log.Printf("Is Owner Checking >> User id comparison %v by %v is %v", authenticated.UserID, model.UserID, isOwner)
 
 	//Run the callback
 	opStatus, err := callback(isOwner)

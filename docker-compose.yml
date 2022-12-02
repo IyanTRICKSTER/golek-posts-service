@@ -1,0 +1,45 @@
+version: "2.1"
+
+services:
+  db:
+    container_name: golek_posts_service_db
+    image: mongo
+    environment:
+      - MONGO_INITDB_DATABASE=${DB_NAME}
+      - MONGO_INITDB_ROOT_USERNAME=${DB_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - ./pkg/database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - db_vol:/data/db
+    ports:
+      - ${DB_PORT_OUT}:${DB_PORT_IN}
+    networks:
+      default:
+        ipv4_address: 172.53.1.8
+
+  app:
+    container_name: golek_posts_service_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 8088:${APP_PORT}
+      - 6060:6060
+    restart: on-failure
+    volumes:
+      - app_vol:/app
+    networks:
+      default:
+        ipv4_address: 172.53.1.9
+    depends_on:
+      - db
+
+volumes:
+  app_vol:
+  db_vol:
+
+networks:
+  default:
+    name: golek_network_br
+    external: true
+#    driver: bridge

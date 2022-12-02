@@ -3,7 +3,7 @@ package requests
 import "mime/multipart"
 
 type CreatePostRequest struct {
-	UserID          int64                       `binding:"required" form:"user_id" json:"user_id"`
+	//UserID          int64                       `binding:"required" form:"user_id" json:"user_id"`
 	Title           string                      `binding:"required" form:"title" json:"title"`
 	Image           *multipart.FileHeader       `binding:"required" form:"image" json:"image"`
 	Place           string                      `binding:"required" form:"place" json:"place"`

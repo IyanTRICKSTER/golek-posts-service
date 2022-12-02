@@ -30,7 +30,7 @@ func (d DatabaseRepository) Search(ctx context.Context, keyword string, limit in
 		return []models.Post{}, err
 	}
 
-	var results []models.Post
+	results := make([]models.Post, 0)
 	if err = cursor.All(context.TODO(), &results); err != nil {
 		return []models.Post{}, err
 	}

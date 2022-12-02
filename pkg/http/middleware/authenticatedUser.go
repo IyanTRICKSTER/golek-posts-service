@@ -1,15 +1,18 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
 type AuthenticatedRequest struct {
 	UserID      string
 	Role        string
 	Permissions string
+	Username    string
+	UserMajor   string
 }
 
 var authenticated *AuthenticatedRequest
@@ -19,6 +22,8 @@ func ValidateRequestHeaderMiddleware(c *gin.Context) {
 	userPermission := c.Request.Header.Get("X-User-Permission")
 	userRole := c.Request.Header.Get("X-User-Role")
 	userId := c.Request.Header.Get("X-User-Id")
+	username := c.Request.Header.Get("X-User-Name")
+	userMajor := c.Request.Header.Get("X-User-Major")
 
 	if userId != "" && userRole != "" && userPermission != "" {
 
@@ -28,6 +33,8 @@ func ValidateRequestHeaderMiddleware(c *gin.Context) {
 			Permissions: userPermission,
 			UserID:      userId,
 			Role:        userRole,
+			Username:    username,
+			UserMajor:   userMajor,
 		}
 
 		c.Set("authenticatedRequest", authenticated)

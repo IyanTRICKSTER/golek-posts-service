@@ -38,7 +38,7 @@ func (d DatabaseRepository) Search(ctx context.Context, keyword string, limit in
 	return results, nil
 }
 
-func (d DatabaseRepository) Fetch(ctx context.Context, latest bool, limit int64, skip int64) ([]models.Post, error) {
+func (d DatabaseRepository) Fetch(ctx context.Context, latest bool, limit int64, skip int64, filter map[string]any) ([]models.Post, error) {
 
 	opts := options.Find()
 	opts.SetLimit(limit)
@@ -49,7 +49,9 @@ func (d DatabaseRepository) Fetch(ctx context.Context, latest bool, limit int64,
 	}
 
 	//Fetch Records
-	filter := map[string]interface{}{"deleted_at": nil}
+	//filters := map[string]any{}
+	//maps.Copy(filters, filter)
+
 	records, err := d.Collection.Find(ctx, filter, opts)
 	if err != nil {
 		log.Println("DBRepository Error: Fetch")

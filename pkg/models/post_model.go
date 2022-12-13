@@ -14,7 +14,7 @@ type UserInfo struct {
 type Post struct {
 	ID              primitive.ObjectID `json:"id" bson:"_id"`
 	UserID          int64              `bson:"user_id" json:"user_id"`
-	ReturnedTo      int64              `bson:"returned_to" json:"returned_to,omitempty"`
+	ReturnedTo      int64              `bson:"returned_to" json:"returned_to"`
 	IsReturned      bool               `bson:"is_returned" json:"is_returned"`
 	Title           string             `bson:"title" json:"title"`
 	ImageURL        string             `bson:"image_url" json:"image_url"`

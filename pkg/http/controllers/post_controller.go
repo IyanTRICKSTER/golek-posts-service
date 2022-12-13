@@ -21,16 +21,30 @@ type PostHandler struct {
 
 func (h *PostHandler) Fetch(c *gin.Context) {
 
+	//Get page number
 	page, ok := c.GetQuery("page")
 	if page == "" || !ok {
 		page = "1"
 	}
 
+	//get limit number
 	limit, ok := c.GetQuery("limit")
-	if page == "" || !ok {
-		page = "1"
+	if limit == "" || !ok {
+		limit = "10"
 	}
 
+	userID, ok := c.GetQuery("user-id")
+	if userID == "" || !ok {
+		userID = "0"
+	}
+
+	isReturned := false
+	returned, ok := c.GetQuery("returned")
+	if ok && returned == "1" {
+		isReturned = true
+	}
+
+	//convert page parameter to int
 	qPage, err := strconv.ParseInt(page, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -39,10 +53,20 @@ func (h *PostHandler) Fetch(c *gin.Context) {
 		return
 	}
 
+	//convert limit parameter to int
 	qLimit, err := strconv.ParseInt(limit, 10, 64)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "Parsing Limit Parameter " + err.Error(),
+		})
+		return
+	}
+
+	//convert user id parameter to int
+	userIDint, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Parsing UserID Parameter " + err.Error(),
 		})
 		return
 	}
@@ -52,7 +76,11 @@ func (h *PostHandler) Fetch(c *gin.Context) {
 		PerPage: qLimit,
 	}
 
-	posts, err := h.PostService.Fetch(context.TODO(), paginate)
+	filter := map[string]any{"is_returned": isReturned}
+	if userIDint != 0 {
+		filter["user_id"] = userIDint
+	}
+	posts, err := h.PostService.Fetch(context.TODO(), paginate, filter)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": "PostService Fetch " + err.Error(),
@@ -257,11 +285,123 @@ func (h *PostHandler) Delete(c *gin.Context) {
 		})
 		return
 	}
-
 	c.JSON(http.StatusOK, responses.HttpResponse{
 		StatusCode: http.StatusOK,
 		Message:    "data deleted successfully",
 		Data:       nil,
 	})
+
 	return
+}
+
+func (h *PostHandler) ReqValidateOwner(c *gin.Context) {
+
+	postID := c.Param("user_id")
+	if postID == "" {
+		c.JSON(http.StatusBadRequest, responses.HttpErrorResponse{
+			StatusCode: http.StatusBadRequest,
+			Error:      "Query parameter is not valid",
+			Data:       nil,
+		})
+		return
+	}
+
+	val, _ := c.Get("authenticatedRequest")
+	authContext := context.WithValue(context.Background(), "authenticatedRequest", val)
+
+	qrCodeUrl, opStatus, err := h.PostService.RequestValidateOwner(authContext, postID)
+	if opStatus == status.OperationUnauthorized {
+		c.JSON(http.StatusUnauthorized, responses.HttpErrorResponse{
+			StatusCode: http.StatusUnauthorized,
+			Error:      "Request Validate Owner " + err.Error(),
+		})
+		return
+	}
+	if opStatus == status.OperationForbidden {
+		c.JSON(http.StatusForbidden, responses.HttpErrorResponse{
+			StatusCode: http.StatusForbidden,
+			Error:      "Request Validate Owner " + err.Error(),
+		})
+		return
+	}
+	if err != nil {
+		if opStatus == status.PostRequestValidationFailed {
+			c.JSON(http.StatusInternalServerError, responses.HttpErrorResponse{
+				StatusCode: http.StatusInternalServerError,
+				Error:      "Request Validate Owner " + err.Error(),
+			})
+			return
+		}
+	}
+	if opStatus == status.PostAlreadyReturned {
+		c.JSON(http.StatusOK, responses.HttpResponse{
+			StatusCode: http.StatusOK,
+			Message:    "post already returned",
+			Data:       nil,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, responses.HttpResponse{
+		StatusCode: http.StatusOK,
+		Data:       gin.H{
+			"qr_code_url": qrCodeUrl,
+		},
+	})
+	return
+}
+
+func (h *PostHandler) ValidateOwner(c *gin.Context) {
+
+	var validatePostReq requests.ValidateItemOwnerRequest
+
+	err := c.ShouldBind(&validatePostReq)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, responses.HttpErrorResponse{
+			StatusCode: http.StatusInternalServerError,
+			Error:      err.Error(),
+		})
+		return
+	}
+
+	val, _ := c.Get("authenticatedRequest")
+	authContext := context.WithValue(context.Background(), "authenticatedRequest", val)
+
+	opStatus, err := h.PostService.ValidateOwner(authContext, validatePostReq)
+	if err != nil {
+		if opStatus == status.PostValidateOwnerFailed {
+			c.JSON(http.StatusInternalServerError, responses.HttpErrorResponse{
+				StatusCode: http.StatusInternalServerError,
+				Error:      err.Error(),
+			})
+			return
+		}
+		if opStatus == status.OperationUnauthorized {
+			c.JSON(http.StatusUnauthorized, responses.HttpErrorResponse{
+				StatusCode: http.StatusUnauthorized,
+				Error:      "Validate Owner " + err.Error(),
+			})
+			return
+		}
+		if opStatus == status.OperationForbidden {
+			c.JSON(http.StatusForbidden, responses.HttpErrorResponse{
+				StatusCode: http.StatusForbidden,
+				Error:      "Validate Owner " + err.Error(),
+			})
+			return
+		}
+	}
+
+	if opStatus == status.PostAlreadyReturned {
+		c.JSON(http.StatusOK, responses.HttpResponse{
+			StatusCode: http.StatusOK,
+			Message:    "post already mark as returned",
+		})
+	}
+
+	if opStatus == status.PostValidateOwnerSuccess {
+		c.JSON(http.StatusOK, responses.HttpResponse{
+			StatusCode: http.StatusOK,
+			Message:    "marking post as returned success",
+		})
+	}
 }

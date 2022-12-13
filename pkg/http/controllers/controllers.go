@@ -36,5 +36,7 @@ func SetupHandler(router *gin.Engine, postService *contracts.PostServiceContract
 	r.POST("/", postHandler.Create)
 	r.PUT("/:id", postHandler.Update)
 	r.DELETE("/:id", postHandler.Delete)
+	r.GET("/validate/:user_id", postHandler.ReqValidateOwner)
+	r.POST("/validate/", postHandler.ValidateOwner)
 
 }

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/exp/maps"
 	"golek_posts_service/pkg/contracts"
 	"golek_posts_service/pkg/contracts/status"
 	"golek_posts_service/pkg/http/middleware"
@@ -61,11 +62,34 @@ func (p PostService) RequestValidateOwner(ctx context.Context, postID string) (q
 		return "", status.PostAlreadyReturned, nil
 	}
 
+	authenticatedReq := ctx.Value("authenticatedRequest").(*middleware.AuthenticatedRequest)
+
+	//Checking authorization
+	opStatus, err = ProtectResource(
+		contracts.Resource{
+			Alias: "v",
+			Name:  "Validate",
+		},
+		authenticatedReq,
+		post,
+		func(isOwner bool) (opStatus status.PostOperationStatus, err error) {
+			//if !isOwner {
+			//	return status.OperationForbidden, errors.New(
+			//		fmt.Sprintf("User x is not the owner of Model y"))
+			//}
+			return status.OperationAllowed, nil
+		},
+	)
+
+	if err != nil {
+		return "", opStatus, err
+	}
+
 	//1. hash post id with hash secret
-	hash := utils.Hash("mysecret" + postID)
+	hash := utils.Hash(os.Getenv("VALIDATION_SECRET") + postID)
 
 	//2. create json string contains post id and hashed post id
-	data := fmt.Sprintf("{\"post_id\": \"%s\", \"hash\": \"%s\"}", postID, hash)
+	data := fmt.Sprintf(`{"post_id": "%s", "hash": "%s"}`, postID, hash)
 
 	//3. generate qrcode with data from step 2
 	qrcodeUrl, err := p.QrCodeRepository.Generate(data)
@@ -85,7 +109,7 @@ func (p PostService) RequestValidateOwner(ctx context.Context, postID string) (q
 	return qrcodeUrl, status.PostRequestValidationSuccess, nil
 }
 
-func (p PostService) ValidateOwner(ctx context.Context, request requests.ValidateItemOwnerRequest) (status.PostOperationStatus, error) {
+func (p PostService) ValidateOwner(ctx context.Context, request requests.ValidateItemOwnerRequest) (opStatus status.PostOperationStatus, err error) {
 
 	post, err := p.PostRepository.FindById(ctx, request.PostID)
 	if err != nil {
@@ -96,7 +120,30 @@ func (p PostService) ValidateOwner(ctx context.Context, request requests.Validat
 		return status.PostAlreadyReturned, nil
 	}
 
-	if !utils.HashCompare(request.Hash, "mysecret"+request.PostID) && post.ConfirmationKey != request.Hash {
+	authenticatedReq := ctx.Value("authenticatedRequest").(*middleware.AuthenticatedRequest)
+
+	//Checking authorization
+	opStatus, err = ProtectResource(
+		contracts.Resource{
+			Alias: "v",
+			Name:  "Validate",
+		},
+		authenticatedReq,
+		post,
+		func(isOwner bool) (opStatus status.PostOperationStatus, err error) {
+			//if !isOwner {
+			//	return status.OperationForbidden, errors.New(
+			//		fmt.Sprintf("User x is not the owner of Model y"))
+			//}
+			return status.OperationAllowed, nil
+		},
+	)
+
+	if err != nil {
+		return opStatus, err
+	}
+
+	if !utils.HashCompare(request.Hash, os.Getenv("VALIDATION_SECRET")+request.PostID) && post.ConfirmationKey != request.Hash {
 		return status.PostValidateOwnerFailed, errors.New("unmatched given hash")
 	}
 
@@ -112,9 +159,13 @@ func (p PostService) ValidateOwner(ctx context.Context, request requests.Validat
 
 }
 
-func (p PostService) Fetch(ctx context.Context, pagination models.Pagination) ([]models.Post, error) {
+func (p PostService) Fetch(ctx context.Context, pagination models.Pagination, filter map[string]any) ([]models.Post, error) {
 	limit, skip := pagination.GetPagination()
-	posts, err := p.PostRepository.Fetch(ctx, true, limit, skip)
+
+	filters := map[string]any{"deleted_at": nil}
+	maps.Copy(filters, filter)
+
+	posts, err := p.PostRepository.Fetch(ctx, true, limit, skip, filters)
 	if err != nil {
 		return nil, err
 	}
@@ -327,7 +378,7 @@ func (p PostService) Delete(ctx context.Context, postID string) (status.PostOper
 // ProtectResource Test
 func ProtectResource(resource contracts.Resource, authenticated *middleware.AuthenticatedRequest, model models.Post, callback func(isOwner bool) (opStatus status.PostOperationStatus, err error)) (status.PostOperationStatus, error) {
 
-	log.Println("Checking User Permissions")
+	//log.Println("Checking User Permissions")
 
 	//Check User Authorization
 	if !strings.Contains(authenticated.Permissions, resource.Alias) {
@@ -337,9 +388,9 @@ func ProtectResource(resource contracts.Resource, authenticated *middleware.Auth
 	log.Printf("User id %v is authorized", authenticated.UserID)
 
 	//Check Model's owner
-	isOwner := (authenticated.UserID == strconv.FormatInt(model.UserID, 10))
+	isOwner := authenticated.UserID == strconv.FormatInt(model.UserID, 10)
 
-	log.Printf("Is Owner Checking >> User id comparison %v by %v is %v", authenticated.UserID, model.UserID, isOwner)
+	//log.Printf("Is Owner Checking >> User id comparison %v by %v is %v", authenticated.UserID, model.UserID, isOwner)
 
 	//Run the callback
 	opStatus, err := callback(isOwner)

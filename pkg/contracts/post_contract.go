@@ -8,7 +8,7 @@ import (
 )
 
 type PostServiceContract interface {
-	Fetch(ctx context.Context, pagination models.Pagination) ([]models.Post, error)
+	Fetch(ctx context.Context, pagination models.Pagination, filter map[string]any) ([]models.Post, error)
 	FindById(ctx context.Context, postID string) (models.Post, error)
 	Search(ctx context.Context, keyword string, pagination models.Pagination) ([]models.Post, error)
 	Create(ctx context.Context, request requests.CreatePostRequest) (models.Post, status.PostOperationStatus, error)
@@ -19,7 +19,7 @@ type PostServiceContract interface {
 }
 
 type PostRepositoryContract interface {
-	Fetch(ctx context.Context, latest bool, limit int64, skip int64) ([]models.Post, error)
+	Fetch(ctx context.Context, latest bool, limit int64, skip int64, filter map[string]any) ([]models.Post, error)
 	FindById(ctx context.Context, postID string) (models.Post, error)
 	Search(ctx context.Context, keyword string, limit int64, skip int64) ([]models.Post, error)
 	Create(ctx context.Context, post models.Post) (models.Post, status.PostOperationStatus, error)

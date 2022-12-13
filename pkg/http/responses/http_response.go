@@ -11,3 +11,9 @@ type HttpPaginationResponse struct {
 	Page    int64 `json:"page"`
 	HttpResponse
 }
+
+type HttpErrorResponse struct {
+	StatusCode int         `json:"status_code,omitempty"`
+	Error      string      `json:"error,omitempty"`
+	Data       interface{} `json:"data,omitempty"`
+}

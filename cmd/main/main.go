@@ -1,9 +1,7 @@
 package main
 
 import (
-	"golek_posts_service/cmd/grpc_server"
 	"golek_posts_service/cmd/msg_broker"
-	"golek_posts_service/pkg/contracts"
 	"golek_posts_service/pkg/database"
 	"golek_posts_service/pkg/database/migration"
 	"golek_posts_service/pkg/http/controllers"
@@ -70,10 +68,10 @@ func main() {
 	controllers.SetupHandler(engine, &postService)
 
 	//Run grpc service in different thread
-	go func(postService *contracts.PostServiceContract) {
-		grpcServer := grpc_server.New(postService)
-		grpcServer.Run()
-	}(&postService)
+	//go func(postService *contracts.PostServiceContract) {
+	//	grpcServer := grpc_server.New(postService)
+	//	grpcServer.Run()
+	//}(&postService)
 
 	//Running App With Desired Port
 	if port := os.Getenv("APP_PORT"); port == "" {

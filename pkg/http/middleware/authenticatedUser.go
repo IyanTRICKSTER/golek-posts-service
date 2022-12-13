@@ -27,7 +27,7 @@ func ValidateRequestHeaderMiddleware(c *gin.Context) {
 
 	if userId != "" && userRole != "" && userPermission != "" {
 
-		log.Println("Request Header is Valid")
+		//log.Println("Request Header is Valid")
 
 		authenticated = &AuthenticatedRequest{
 			Permissions: userPermission,

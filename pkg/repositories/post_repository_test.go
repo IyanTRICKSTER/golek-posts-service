@@ -36,7 +36,7 @@ func TestDatabaseRepository(t *testing.T) {
 	dbRepo := NewPostRepository(db.GetConnection(), db.GetCollection())
 
 	t.Run("Fetch", func(t *testing.T) {
-		posts, err := dbRepo.Fetch(context.TODO(), false, 10, 0)
+		posts, err := dbRepo.Fetch(context.TODO(), false, 10, 0, map[string]any{})
 		if err != nil {
 			t.Error(err)
 		}

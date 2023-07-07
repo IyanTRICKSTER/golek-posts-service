@@ -67,7 +67,7 @@ func (p PostService) RequestValidateOwner(ctx context.Context, postID string) (q
 	//Checking authorization
 	opStatus, err = ProtectResource(
 		contracts.Resource{
-			Alias: "v",
+			Alias: "vp",
 			Name:  "Validate",
 		},
 		authenticatedReq,
@@ -125,7 +125,7 @@ func (p PostService) ValidateOwner(ctx context.Context, request requests.Validat
 	//Checking authorization
 	opStatus, err = ProtectResource(
 		contracts.Resource{
-			Alias: "v",
+			Alias: "vp",
 			Name:  "Validate",
 		},
 		authenticatedReq,

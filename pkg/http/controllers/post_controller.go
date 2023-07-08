@@ -296,7 +296,7 @@ func (h *PostHandler) Delete(c *gin.Context) {
 
 func (h *PostHandler) ReqValidateOwner(c *gin.Context) {
 
-	postID := c.Param("user_id")
+	postID := c.Param("post_id")
 	if postID == "" {
 		c.JSON(http.StatusBadRequest, responses.HttpErrorResponse{
 			StatusCode: http.StatusBadRequest,
@@ -343,7 +343,7 @@ func (h *PostHandler) ReqValidateOwner(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, responses.HttpResponse{
 		StatusCode: http.StatusOK,
-		Data:       gin.H{
+		Data: gin.H{
 			"qr_code_url": qrCodeUrl,
 		},
 	})

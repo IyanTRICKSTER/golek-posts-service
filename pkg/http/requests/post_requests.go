@@ -22,9 +22,8 @@ type UpdatePostRequest struct {
 }
 
 type ValidateItemOwnerRequest struct {
-	PostID  string `json:"post_id" binding:"required"`
-	OwnerID int64  `json:"owner_id" binding:"required"`
-	Hash    string `json:"hash" binding:"required"`
+	PostID string `json:"post_id" binding:"required"`
+	Hash   string `json:"hash" binding:"required"`
 }
 
 type PostCharacteristicRequest struct {

@@ -147,7 +147,8 @@ func (p PostService) ValidateOwner(ctx context.Context, request requests.Validat
 		return status.PostValidateOwnerFailed, errors.New("unmatched given hash")
 	}
 
-	post.ReturnedTo = request.OwnerID
+	userID, _ := strconv.Atoi(authenticatedReq.UserID)
+	post.ReturnedTo = int64(userID)
 	post.IsReturned = true
 
 	_, opStatus, err2 := p.PostRepository.Update(ctx, request.PostID, post)

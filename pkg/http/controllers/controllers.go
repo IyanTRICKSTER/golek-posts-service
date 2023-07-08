@@ -38,7 +38,7 @@ func SetupHandler(router *gin.Engine, postService *contracts.PostServiceContract
 	r.POST("/", middleware.ValidateRequestHeaderMiddleware, postHandler.Create)
 	r.PUT("/:id", middleware.ValidateRequestHeaderMiddleware, postHandler.Update)
 	r.DELETE("/:id", middleware.ValidateRequestHeaderMiddleware, postHandler.Delete)
-	r.GET("/validate/:user_id", middleware.ValidateRequestHeaderMiddleware, postHandler.ReqValidateOwner)
+	r.GET("/validate/:post_id", middleware.ValidateRequestHeaderMiddleware, postHandler.ReqValidateOwner)
 	r.POST("/validate/", middleware.ValidateRequestHeaderMiddleware, postHandler.ValidateOwner)
 
 }

@@ -28,8 +28,8 @@ func SetupHandler(router *gin.Engine, postService *contracts.PostServiceContract
 		})
 	})
 
+	router.Use(middleware.HandleCORS())
 	r := router.Group("/api/posts/")
-	r.Use(middleware.HandleCORS())
 	r.Use(middleware.ValidateRequestHeaderMiddleware)
 	r.GET("/list", postHandler.Fetch)
 	r.GET("/:id", postHandler.FetchByID)

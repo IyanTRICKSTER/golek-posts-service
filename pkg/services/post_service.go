@@ -382,7 +382,7 @@ func ProtectResource(resource contracts.Resource, authenticated *middleware.Auth
 
 	//Check User Authorization
 	if !strings.Contains(authenticated.Permissions, resource.Alias) {
-		return status.OperationUnauthorized, errors.New("User x doesn't have any permission to access " + resource.Name + " resource")
+		return status.OperationUnauthorized, errors.New("You doesn't have any permission to access " + resource.Name + " resource")
 	}
 
 	log.Printf("User id %v is authorized", authenticated.UserID)

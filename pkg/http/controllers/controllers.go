@@ -12,6 +12,8 @@ func SetupHandler(router *gin.Engine, postService *contracts.PostServiceContract
 
 	postHandler := PostHandler{*postService}
 
+	router.Use(middleware.HandleCORS())
+
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, responses.HttpResponse{
 			StatusCode: http.StatusNotFound,
@@ -28,7 +30,6 @@ func SetupHandler(router *gin.Engine, postService *contracts.PostServiceContract
 		})
 	})
 
-	router.Use(middleware.HandleCORS())
 	r := router.Group("/api/posts/")
 	r.Use(middleware.ValidateRequestHeaderMiddleware)
 	r.GET("/list", postHandler.Fetch)

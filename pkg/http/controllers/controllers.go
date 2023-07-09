@@ -12,7 +12,7 @@ func SetupHandler(router *gin.Engine, postService *contracts.PostServiceContract
 
 	postHandler := PostHandler{*postService}
 
-	router.Use(middleware.HandleCORS())
+	//router.Use(middleware.HandleCORS())
 
 	router.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, responses.HttpResponse{

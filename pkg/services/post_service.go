@@ -23,14 +23,14 @@ import (
 )
 
 type PostService struct {
-	StorageRepository   contracts.StorageRepository
+	StorageRepository   contracts.ICloudStorageRepo
 	PostRepository      contracts.PostRepositoryContract
 	QrCodeRepository    contracts.QrCodeRepository
 	MessageQueueService contracts.MessageQueue
 }
 
 func NewPostService(postRepository *contracts.PostRepositoryContract,
-	qrcodeRepository *contracts.QrCodeRepository, storageRepository *contracts.StorageRepository, mqService *contracts.MessageQueue) contracts.PostServiceContract {
+	qrcodeRepository *contracts.QrCodeRepository, storageRepository *contracts.ICloudStorageRepo, mqService *contracts.MessageQueue) contracts.PostServiceContract {
 
 	return &PostService{
 		PostRepository:      *postRepository,
@@ -206,26 +206,27 @@ func (p PostService) Create(ctx context.Context, request requests.CreatePostRequ
 		)
 	}
 
-	//Upload an image to Storage
-	s3Response, err := p.StorageRepository.UploadFile(request.Image, "")
-	if err != nil {
-		return models.Post{}, status.PostCreatedStatusFailed, err
-	}
-
 	userID, err := strconv.Atoi(authenticatedReq.UserID)
 	if err != nil {
 		return models.Post{}, status.PostCreatedStatusFailed, err
 	}
 
 	timeNow := time.Now()
+
+	//Upload an image to Storage
+	fileUrl, err := p.StorageRepository.UploadFile(ctx, request.Image, request.Title+UnixMilliToStr())
+	if err != nil {
+		return models.Post{}, status.PostCreatedStatusFailed, err
+	}
+
 	newPost := models.Post{
 		ID:              primitive.NewObjectID(),
 		UserID:          int64(userID),
 		ReturnedTo:      0,
 		IsReturned:      false,
 		Title:           request.Title,
-		ImageURL:        p.replaceVideoUrl(s3Response.Filepath),
-		ImageKey:        s3Response.Key,
+		ImageURL:        fileUrl,
+		ImageKey:        "",
 		ConfirmationKey: "",
 		Place:           request.Place,
 		Description:     request.Description,
@@ -247,6 +248,7 @@ func (p PostService) Create(ctx context.Context, request requests.CreatePostRequ
 	//Notify all User
 	go func() {
 		payload, err := json.Marshal(contracts.MessagePayload{
+			UserID:   int64(userID),
 			Title:    "Telah ditemukan " + createdPost.Title,
 			Body:     createdPost.Characteristics[0].Title,
 			ImageUrl: createdPost.ImageURL,
@@ -293,25 +295,23 @@ func (p PostService) Update(ctx context.Context, postID string, request requests
 		return models.Post{}, opStatus, err
 	}
 
+	timeNow := time.Now()
+
 	//If authorized then,
 	//Delete old image and upload a new one (if image exists in update request)
 	if request.Image != nil {
-		err := p.StorageRepository.DeleteObject(&post.ImageKey)
+		err := p.StorageRepository.DeleteFile(ctx, post.ImageURL)
 		if err != nil {
 			return models.Post{}, status.PostUpdatedStatusFailed, err
 		}
 
-		s3Response, err := p.StorageRepository.UploadFile(request.Image, "")
+		post.ImageURL, err = p.StorageRepository.UploadFile(ctx, request.Image, request.Title+UnixMilliToStr())
 		if err != nil {
 			return models.Post{}, status.PostUpdatedStatusFailed, err
 		}
-
-		post.ImageURL = p.replaceVideoUrl(s3Response.Filepath)
-		post.ImageKey = s3Response.Key
 	}
 
 	//Update post data
-	timeNow := time.Now()
 	post.Title = request.Title
 	post.Place = request.Place
 	post.Description = request.Description
@@ -364,7 +364,7 @@ func (p PostService) Delete(ctx context.Context, postID string) (status.PostOper
 		return opStatus, err
 	}
 
-	err = p.StorageRepository.DeleteObject(&post.ImageKey)
+	err = p.StorageRepository.DeleteFile(ctx, post.ImageURL)
 	if err != nil {
 		return status.PostDeletedStatusFailed, err
 	}
@@ -405,4 +405,8 @@ func ProtectResource(resource contracts.Resource, authenticated *middleware.Auth
 func (p PostService) replaceVideoUrl(url string) string {
 	var regex, _ = regexp.Compile(os.Getenv("AWS_S3_DEFAULT_OBJECT_URL"))
 	return regex.ReplaceAllString(url, os.Getenv("AWS_CLOUDFRONT_URL"))
+}
+
+func UnixMilliToStr() string {
+	return strconv.Itoa(int(time.Now().UnixMilli()))
 }

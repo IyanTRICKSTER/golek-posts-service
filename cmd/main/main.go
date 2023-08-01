@@ -41,15 +41,23 @@ func main() {
 	//Initialize Repositories
 	postRepository := repositories.NewPostRepository(db.GetConnection(), db.GetCollection())
 	qrcodeRepository := repositories.NewQRCodeRepository()
-	awsS3Repository := repositories.NewS3Repository(
-		os.Getenv("AWS_ACCESS_KEY_ID"),
-		os.Getenv("AWS_SECRET_ACCESS_KEY"),
-		os.Getenv("AWS_BUCKET_NAME"),
-		os.Getenv("AWS_BUCKET_REGION"),
-		[]string{"image/jpeg", "image/png"},
-		int64(5*1024*1024), //MAX Filesize 5mb
-		3,
-	)
+	//awsS3Repository := repositories.NewS3Repository(
+	//	os.Getenv("AWS_ACCESS_KEY_ID"),
+	//	os.Getenv("AWS_SECRET_ACCESS_KEY"),
+	//	os.Getenv("AWS_BUCKET_NAME"),
+	//	os.Getenv("AWS_BUCKET_REGION"),
+	//	[]string{"image/jpeg", "image/png"},
+	//	int64(5*1024*1024), //MAX Filesize 5mb
+	//	3,
+	//)
+
+	//Setup Cloud Storage Service
+	//wd, _ := os.Getwd()
+	googleCloudStorage := repositories.NewGCStorageService("ayocode1-bucker", "keys.json")
+	err = googleCloudStorage.Connect()
+	if err != nil {
+		panic(err)
+	}
 
 	//Establish Message Broker Connection
 	amqpConn := msg_broker.New(
@@ -62,7 +70,7 @@ func main() {
 	mqPublisherService.Setup()
 
 	//Initialize Services
-	postService := services.NewPostService(&postRepository, &qrcodeRepository, &awsS3Repository, &mqPublisherService)
+	postService := services.NewPostService(&postRepository, &qrcodeRepository, &googleCloudStorage, &mqPublisherService)
 
 	//Initialize Routes
 	controllers.SetupHandler(engine, &postService)

@@ -89,9 +89,8 @@ func TestPostService(t *testing.T) {
 
 	t.Run("ValidateOwner", func(t *testing.T) {
 		opStatus, err := postService.ValidateOwner(context.TODO(), requests.ValidateItemOwnerRequest{
-			PostID:  "636f342ce0ebfaa96cfef711",
-			OwnerID: 112,
-			Hash:    "$2a$10$VdTa0yoL2SPlUzyxpOkgcu5FFIx0IOhWt4au2WbmQ.NXhABZVExee",
+			PostID: "636f342ce0ebfaa96cfef711",
+			Hash:   "$2a$10$VdTa0yoL2SPlUzyxpOkgcu5FFIx0IOhWt4au2WbmQ.NXhABZVExee",
 		})
 		if err != nil || opStatus != status.PostValidateOwnerSuccess {
 			t.Error(err)
